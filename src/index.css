@@ -1,68 +1,49 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;0,800;1,600&family=Nunito:wght@400;500;600;700;800&display=swap');
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+:root{
+  /* Palette */
+  --green:       #0f7b5e;
+  --green-l:     #13a07a;
+  --green-ll:    #e6f7f2;
+  --green-d:     #0a5c46;
+  --amber:       #d97706;
+  --amber-l:     #fbbf24;
+  --amber-ll:    #fffbeb;
+  --red:         #dc2626;
+  --red-l:       #fee2e2;
+  --blue:        #2563eb;
+  --blue-l:      #eff6ff;
+  --bg:          #f4f0ea;
+  --bg2:         #ece8e1;
+  --surface:     #ffffff;
+  --surface2:    #f9f6f2;
+  --text:        #1a1a1a;
+  --text2:       #3d3d3d;
+  --text3:       #6b7280;
+  --border:      #e2dbd2;
+  --shadow-sm:   0 2px 8px rgba(15,123,94,.08);
+  --shadow:      0 4px 24px rgba(15,123,94,.12);
+  --shadow-lg:   0 12px 48px rgba(15,123,94,.20);
+  --radius:      20px;
+  --radius-sm:   12px;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+html,body,#root{height:100%;width:100%}
+
+body{
+  font-family:'Nunito',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.7;
+  font-size:18px;
+  -webkit-font-smoothing:antialiased;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
+button{cursor:pointer;font-family:'Nunito',sans-serif;border:none;outline:none}
+input,select,textarea{font-family:'Nunito',sans-serif}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
