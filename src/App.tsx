@@ -371,7 +371,7 @@ CRITICAL RULES:
     setLogs(p => [l, ...p].slice(0, 50))
     if (status === 'missed' && meds.find(m=>m.name===medication)?.alertIfMissed) {
       setAlerts(p => [{
-        id: uid(), message: `⚠️ ${medication} dose was missed`, time: nowTime(), type: 'warning'
+        id: uid(), message: `⚠️ ${medication} dose was missed`, time: nowTime(), type: 'warning' as const
       }, ...p].slice(0, 40))
     }
   }
