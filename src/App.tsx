@@ -123,36 +123,26 @@ function pickVoice(voices:SpeechSynthesisVoice[], langCode:string, langBcp:strin
   let v = voices.find(v=>v.lang.toLowerCase() === langCode.toLowerCase())
   if (v) return v
   
-  // Try BCP code match case-insensitive
-  v = voices.find(v=>v.lang.toLowerCase().startsWith(langBcp.toLowerCase() + '-'))
+  // Try BCP code match (e.g., hi, en, es) — case insensitive
+  v = voices.find(v=>v.lang.toLowerCase().startsWith(langBcp.toLowerCase()))
   if (v) return v
   
-  // Special handling for Hindi - try multiple variants
+  // For Hindi specifically, try variations
   if (langBcp === 'hi') {
-    // Try hi-IN specifically
-    v = voices.find(v=>v.lang.toLowerCase().startsWith('hi-'))
-    if (v) return v
-    // Try any voice with Hindi in name
-    v = voices.find(v=>v.name.toLowerCase().includes('hindi'))
-    if (v) return v
-    // Try any voice with 'hi'
-    v = voices.find(v=>v.lang.toLowerCase() === 'hi')
+    v = voices.find(v=>{
+      const l = v.lang.toLowerCase()
+      return l.includes('hindi') || (l.startsWith('hi') && !l.startsWith('hong'))
+    })
     if (v) return v
   }
   
-  // For Spanish
+  // For Spanish, try any es variant
   if (langBcp === 'es') {
-    v = voices.find(v=>v.lang.toLowerCase().startsWith('es-'))
+    v = voices.find(v=>v.lang.toLowerCase().startsWith('es'))
     if (v) return v
   }
   
-  // For Italian
-  if (langBcp === 'it') {
-    v = voices.find(v=>v.lang.toLowerCase().startsWith('it-'))
-    if (v) return v
-  }
-  
-  // Last resort: use first voice
+  // Last resort: just use first voice available
   return voices[0]
 }
 
@@ -218,7 +208,6 @@ export default function App() {
   const fileRef   = useRef<HTMLInputElement>(null)
   const firstLang = useRef(true)
   const speakingNowR = useRef(false) // Track if TTS is active
-  const pausedR = useRef(false) // Track if TTS is paused
 
   // Keep refs in sync
   useEffect(()=>{ mutedR.current = muted },[muted])
@@ -233,24 +222,14 @@ export default function App() {
 
   // ── LOAD VOICES (poll until available) ──
   useEffect(()=>{
-    const load = () => { 
-      const voices = window.speechSynthesis.getVoices()
-      voicesR.current = voices
-      // Log available voices for debugging
-      if (voices.length > 0) {
-        console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`).join(', '))
-      }
-    }
+    const load = () => { voicesR.current = window.speechSynthesis.getVoices() }
     load()
     window.speechSynthesis.onvoiceschanged = load
-    // Chrome loads voices with delays
-    const timers = [
-      setTimeout(load, 100),
-      setTimeout(load, 300),
-      setTimeout(load, 1000),
-      setTimeout(load, 2000),
-    ]
-    return ()=>{ timers.forEach(clearTimeout) }
+    // Chrome loads voices asynchronously
+    const t1=setTimeout(load,300)
+    const t2=setTimeout(load,1000)
+    const t3=setTimeout(load,3000)
+    return ()=>{ clearTimeout(t1);clearTimeout(t2);clearTimeout(t3) }
   },[])
 
   // ── SPEAK — Simple, clean, no feedback loop ──
@@ -262,7 +241,6 @@ export default function App() {
     
     // Cancel any existing speech
     window.speechSynthesis.cancel()
-    pausedR.current = false
     
     const key = lk ?? langR.current
     const cfg = L[key]
@@ -291,39 +269,14 @@ export default function App() {
     speakingNowR.current = true
     utt.onend = () => {
       speakingNowR.current = false
-      pausedR.current = false
     }
     utt.onerror = () => {
       speakingNowR.current = false
-      pausedR.current = false
     }
     
     // Queue it
     window.speechSynthesis.speak(utt)
   },[mutedR])
-  
-  // Pause speech
-  const pauseVoice = () => {
-    if (window.speechSynthesis.speaking && !pausedR.current) {
-      window.speechSynthesis.pause()
-      pausedR.current = true
-    }
-  }
-  
-  // Resume speech
-  const resumeVoice = () => {
-    if (window.speechSynthesis.paused && pausedR.current) {
-      window.speechSynthesis.resume()
-      pausedR.current = false
-    }
-  }
-  
-  // Stop speech completely
-  const stopVoice = () => {
-    window.speechSynthesis.cancel()
-    speakingNowR.current = false
-    pausedR.current = false
-  }
   
   // Cancel speech when mute is toggled
   useEffect(()=>{
@@ -515,125 +468,96 @@ STRICT RULES:
   const analyzeBlood = async () => {
     setAnalyzing(true)
     const age = bloodAge ? parseInt(bloodAge) : (patient.age ? parseInt(patient.age) : 0)
+    // Build normal ranges based on age
     const ageGroup = age < 18 ? 'child' : age < 65 ? 'adult' : 'elderly'
     const manualVals = Object.entries(bloodVals).filter(([,v])=>v.trim()).map(([k,v])=>`${k}: ${v}`).join(', ')
 
-    // Check if we have anything to analyze
-    if (!repB64 && !manualVals) {
-      setAlerts(p=>[{id:uid(),msg:'⚠️ Upload a file or enter blood values to analyze',time:nowT(),type:'warning'},...p])
-      setAnalyzing(false)
-      return
-    }
-
     let imageBlock: object | null = null
     if (repB64 && repMime) {
-      if (repMime.startsWith('image/')) {
-        imageBlock = {type:'image',source:{type:'base64',media_type:repMime,data:repB64}}
-      } else if (repMime.includes('pdf')) {
-        imageBlock = {type:'document',source:{type:'base64',media_type:'application/pdf',data:repB64}}
-      }
+      imageBlock = repMime.startsWith('image/')
+        ? {type:'image',source:{type:'base64',media_type:repMime,data:repB64}}
+        : {type:'document',source:{type:'base64',media_type:'application/pdf',data:repB64}}
     }
 
-    const sys = `ANALYZE BLOOD TEST VALUES. RESPOND IN EXACT FORMAT ONLY.
+    const sys = `You are a HARSH medical analyzer for blood tests. Age: ${age} years (${ageGroup}).
+${patient.name ? `Patient: ${patient.name}, condition: ${patient.condition}.` : ''}
 
-Patient age: ${age} years (${ageGroup})
+MANDATORY RESPONSE FORMAT - COPY THIS EXACTLY:
 
-OUTPUT MUST START WITH THESE EXACT LINES:
-RISK_LEVEL: SAFE
-RISK_MSG: Summary here
-DOCTOR: Not needed
+RISK_LEVEL: WRITE_HERE_ONE_WORD_ONLY
+RISK_MSG: Write one sentence summary here
+DOCTOR: Write one of these EXACTLY: "Not needed" or "Within a week" or "Today - urgent"
 
-If ANY value is abnormal, write RISK_LEVEL: WARNING
-If ANY value is critical/dangerous, write RISK_LEVEL: URGENT
+SUMMARY:
+Write 2-3 sentences here
 
-DO NOT output anything before RISK_LEVEL line.
-Begin your response with RISK_LEVEL on first line.`
+ABNORMAL:
+- Item 1
+- Item 2
+
+NORMAL:
+- Item 1
+- Item 2
+
+ADVICE:
+- Action 1
+- Action 2
+
+RULES YOU MUST FOLLOW:
+1. RISK_LEVEL LINE 1 - WRITE EXACTLY: SAFE or WARNING or URGENT (capital letters)
+2. If ANY value is abnormal → must be WARNING or URGENT
+3. If ANY value is life-threatening or critical → must be URGENT
+4. DEFAULT TO URGENT if unsure - do NOT default to SAFE
+5. If there are abnormal values, RISK_LEVEL CANNOT be SAFE
+6. Copy the format EXACTLY or your response fails
+7. Start with "RISK_LEVEL:" on line 1`
 
     try {
-      const contentArr: any[] = []
-      if (imageBlock) {
-        contentArr.push(imageBlock)
-      }
-      if (manualVals) {
-        contentArr.push({type:'text',text:`Blood values: ${manualVals}`})
-      }
-      contentArr.push({type:'text',text:'Analyze these blood test results. Flag any abnormalities.'})
+      const contentArr: object[] = []
+      if (imageBlock) contentArr.push(imageBlock)
+      if (manualVals) contentArr.push({type:'text',text:`Manual values entered: ${manualVals}`})
+      contentArr.push({type:'text',text:'Analyze this blood test report.'})
 
       const raw = await claude(sys, contentArr, 1000)
-      
-      if (!raw || raw.length === 0) {
-        throw new Error('API returned empty response')
-      }
-
-      const parsed = parseR(raw)
       const newRpt:Report = {
-        id:uid(), 
-        fileName:repFile?.name||'Blood Report', 
-        size:repFile?.size||0,
-        at:nowT(), 
-        raw, 
-        risk:parsed.level, 
-        notes:'', 
-        dataUrl:repDataUrl, 
-        mime:repMime,
+        id:uid(), fileName:repFile?.name||'Blood Report', size:repFile?.size||0,
+        at:nowT(), raw, risk:parseR(raw).level, notes:'', dataUrl:repDataUrl, mime:repMime,
       }
       setReports(p=>[newRpt,...p])
-      
-      const alertType: 'warning'|'info'|'success' = parsed.level==='URGENT'?'warning':'info'
-      setAlerts(p=>[{id:uid(),msg:`📊 Analysis: ${parsed.level} - ${parsed.msg || 'Check results below'}`,time:nowT(),type:alertType},...p])
-      
-      // Reset form
-      setRepFile(null)
-      setRepB64('')
-      setRepDataUrl('')
-      setRepMime('')
-      setBloodAge('')
-      setBloodVals({hb:'',wbc:'',rbc:'',platelets:'',glucose:'',hba1c:'',cholesterol:'',hdl:'',ldl:'',triglycerides:'',creatinine:'',urea:'',sgpt:'',tsh:''})
-    } catch (err) {
-      console.error('Blood analysis error:', err)
-      setAlerts(p=>[{id:uid(),msg:`❌ Analysis failed: ${err instanceof Error ? err.message : 'Unknown error'}`,time:nowT(),type:'warning'},...p])
+      const alertType: 'warning'|'info'|'success' = newRpt.risk==='URGENT'?'warning':'info'
+      setAlerts(p=>[{id:uid(),msg:`📊 New blood report: Risk ${newRpt.risk}`,time:nowT(),type:alertType},...p])
+      // Switch to show result
+      setRepFile(null); setRepB64(''); setRepDataUrl('')
+    } catch {
+      setAlerts(p=>[{id:uid(),msg:'Report analysis failed. Check API key.',time:nowT(),type:'warning'},...p])
     }
     setAnalyzing(false)
   }
 
   const parseR = (raw:string) => {
-    if (!raw) {
-      return {
-        level: 'SAFE',
-        msg: 'Analysis complete',
-        doc: 'Consult physician',
-        sum: '',
-        abn: 'None found',
-        nor: '',
-        adv: '',
-      }
-    }
-
-    // Extract RISK_LEVEL - first line starting with RISK_LEVEL
+    // Extract RISK_LEVEL - match any capitalization
+    let levelMatch = raw.match(/RISK_LEVEL:\s*([A-Za-z_]+)/i)
     let level = 'SAFE'
-    const levelMatch = raw.match(/RISK_LEVEL:\s*([A-Za-z]+)/i)
+    
     if (levelMatch) {
       const extracted = levelMatch[1].toUpperCase().trim()
-      if (extracted === 'SAFE' || extracted === 'GOOD' || extracted === 'NORMAL') {
+      if (extracted === 'SAFE') {
         level = 'SAFE'
-      } else if (extracted === 'WARNING' || extracted === 'ABNORMAL' || extracted === 'CAUTION') {
+      } else if (extracted === 'WARNING') {
         level = 'WARNING'
-      } else if (extracted === 'URGENT' || extracted === 'CRITICAL' || extracted === 'DANGER') {
+      } else if (extracted === 'URGENT') {
         level = 'URGENT'
       }
     }
     
     return {
       level: level,
-      msg:   raw.match(/RISK_MSG:\s*(.+?)(?=\n|$)/i)?.[1]?.trim() 
-             || raw.match(/Summary[:\s]+(.+?)(?=\n|$)/i)?.[1]?.trim()
-             || (level === 'URGENT' ? 'Critical values found' : level === 'WARNING' ? 'Some abnormal values' : 'Values within normal range'),
-      doc:   raw.match(/DOCTOR:\s*(.+?)(?=\n|$)/i)?.[1]?.trim() 
-             || (level === 'URGENT' ? 'Today - urgent' : level === 'WARNING' ? 'Within a week' : 'Not needed'),
-      sum:   raw.match(/SUMMARY:\n([\s\S]*?)(?=\nABNORMAL:|\nNORMAL:|ABNORMAL:|NORMAL:|$)/i)?.[1]?.trim() || '',
-      abn:   raw.match(/ABNORMAL:\n([\s\S]*?)(?=\nNORMAL:|\nADVICE:|NORMAL:|ADVICE:|$)/i)?.[1]?.trim() || 'None found',
-      nor:   raw.match(/NORMAL:\n([\s\S]*?)(?=\nADVICE:|ADVICE:|$)/i)?.[1]?.trim() || '',
-      adv:   raw.match(/ADVICE:\n([\s\S]*?)$/i)?.[1]?.trim() || '',
+      msg:   raw.match(/RISK_MSG:\s*(.+?)(?=\nDOCTOR:|\n\n|\nRISK|[A-Z_]+:|$)/i)?.[1]?.trim() ?? 'Analysis complete',
+      doc:   raw.match(/DOCTOR:\s*(.+?)(?=\nSUMMARY:|\n\n|\n[A-Z_]+:|$)/i)?.[1]?.trim() ?? 'Consult physician',
+      sum:   raw.match(/SUMMARY:\n([\s\S]*?)(?=\nABNORMAL:|\nNORMAL:|\n\n|[A-Z_]+:|$)/i)?.[1]?.trim() ?? '',
+      abn:   raw.match(/ABNORMAL:\n([\s\S]*?)(?=\nNORMAL:|\nADVICE:|\n\n|[A-Z_]+:|$)/i)?.[1]?.trim() ?? 'None found',
+      nor:   raw.match(/NORMAL:\n([\s\S]*?)(?=\nADVICE:|\n\n|[A-Z_]+:|$)/i)?.[1]?.trim() ?? '',
+      adv:   raw.match(/ADVICE:\n([\s\S]*?)(?=\n\n|[A-Z_]+:|$)/i)?.[1]?.trim() ?? '',
     }
   }
 
