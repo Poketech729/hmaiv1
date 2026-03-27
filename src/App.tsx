@@ -206,7 +206,6 @@ export default function App() {
   const voicesR   = useRef<SpeechSynthesisVoice[]>([])
   const debR      = useRef<ReturnType<typeof setTimeout>|null>(null)
   const fileRef   = useRef<HTMLInputElement>(null)
-  const firstLang = useRef(true)
   const speakingNowR = useRef(false) // Track if TTS is active
 
   // Keep refs in sync
