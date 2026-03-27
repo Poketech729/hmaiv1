@@ -1,49 +1,59 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;0,800;1,600&family=Nunito:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  /* Palette */
-  --green:       #0f7b5e;
-  --green-l:     #13a07a;
-  --green-ll:    #e6f7f2;
-  --green-d:     #0a5c46;
-  --amber:       #d97706;
-  --amber-l:     #fbbf24;
-  --amber-ll:    #fffbeb;
-  --red:         #dc2626;
-  --red-l:       #fee2e2;
-  --blue:        #2563eb;
-  --blue-l:      #eff6ff;
-  --bg:          #f4f0ea;
-  --bg2:         #ece8e1;
-  --surface:     #ffffff;
-  --surface2:    #f9f6f2;
-  --text:        #1a1a1a;
-  --text2:       #3d3d3d;
-  --text3:       #6b7280;
-  --border:      #e2dbd2;
-  --shadow-sm:   0 2px 8px rgba(15,123,94,.08);
-  --shadow:      0 4px 24px rgba(15,123,94,.12);
-  --shadow-lg:   0 12px 48px rgba(15,123,94,.20);
-  --radius:      20px;
-  --radius-sm:   12px;
+  --teal:      #0891b2;
+  --teal-l:    #22d3ee;
+  --teal-d:    #0e7490;
+  --teal-bg:   #ecfeff;
+  --coral:     #f97316;
+  --coral-l:   #fb923c;
+  --coral-bg:  #fff7ed;
+  --purple:    #7c3aed;
+  --purple-l:  #a78bfa;
+  --purple-bg: #f5f3ff;
+  --green:     #059669;
+  --green-l:   #34d399;
+  --green-bg:  #ecfdf5;
+  --rose:      #e11d48;
+  --rose-l:    #fb7185;
+  --rose-bg:   #fff1f2;
+  --amber:     #d97706;
+  --amber-bg:  #fffbeb;
+  --navy:      #0f172a;
+  --navy2:     #1e293b;
+  --bg:        #f8fafc;
+  --surface:   #ffffff;
+  --sf2:       #f1f5f9;
+  --text:      #0f172a;
+  --text2:     #334155;
+  --text3:     #64748b;
+  --border:    #e2e8f0;
+  --border2:   #cbd5e1;
+  --r:         18px;
+  --r-sm:      12px;
+  --sh:        0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh-md:     0 4px 16px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.04);
+  --sh-lg:     0 12px 40px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
 }
 
 html,body,#root{height:100%;width:100%}
 
 body{
-  font-family:'Nunito',sans-serif;
+  font-family:'Plus Jakarta Sans',sans-serif;
   background:var(--bg);
   color:var(--text);
-  line-height:1.7;
-  font-size:18px;
+  font-size:16px;
+  line-height:1.65;
   -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
 }
 
-button{cursor:pointer;font-family:'Nunito',sans-serif;border:none;outline:none}
-input,select,textarea{font-family:'Nunito',sans-serif}
+button{cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;border:none;outline:none}
+input,select,textarea{font-family:'Plus Jakarta Sans',sans-serif}
+img{max-width:100%}
 
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
