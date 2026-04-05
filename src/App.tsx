@@ -2364,57 +2364,63 @@ Keep to 2-4 short sentences.
             ))}
           </div>
 
-          {showThemeControl ? (
-            <button
-              className={theme === 'dark' ? 'theme-switch dark' : 'theme-switch'}
-              onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              <span className="theme-switch-track">
-                <span className="theme-switch-thumb">{theme === 'dark' ? <FiMoon /> : <FiSun />}</span>
-              </span>
-            </button>
-          ) : (
-            <button
-              className={muted ? 'sound-switch muted' : 'sound-switch'}
-              onClick={() => {
-                if (!muted) window.speechSynthesis.cancel()
-                setMuted((current) => !current)
-              }}
-              aria-label={muted ? 'Unmute voice' : 'Mute voice'}
-            >
-              <span className="sound-switch-track">
-                <span className="sound-switch-thumb">{muted ? <FiVolumeX /> : <FiVolume2 />}</span>
-              </span>
-            </button>
-          )}
+          <div className="topbar-utility-row">
+            <div className="topbar-utility-left">
+              {showThemeControl ? (
+                <button
+                  className={theme === 'dark' ? 'theme-switch dark' : 'theme-switch'}
+                  onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  <span className="theme-switch-track">
+                    <span className="theme-switch-thumb">{theme === 'dark' ? <FiMoon /> : <FiSun />}</span>
+                  </span>
+                </button>
+              ) : (
+                <button
+                  className={muted ? 'sound-switch muted' : 'sound-switch'}
+                  onClick={() => {
+                    if (!muted) window.speechSynthesis.cancel()
+                    setMuted((current) => !current)
+                  }}
+                  aria-label={muted ? 'Unmute voice' : 'Mute voice'}
+                >
+                  <span className="sound-switch-track">
+                    <span className="sound-switch-thumb">{muted ? <FiVolumeX /> : <FiVolume2 />}</span>
+                  </span>
+                </button>
+              )}
+            </div>
 
-          <button
-            className={isAuthenticated ? 'nurse-dog-trigger signed-in' : 'nurse-dog-trigger'}
-            onClick={() => (isAuthenticated ? setLegalModal('account') : setShowAuthModal(true))}
-            aria-label={isAuthenticated ? 'Open account' : 'Open sign in'}
-            title={isAuthenticated ? String(currentUser?.user?.firstName ?? currentUser?.user?.email ?? 'Account') : 'Sign in'}
-          >
-            <span className="dog-ears" />
-            <span className="dog-face">
-              <span className="dog-eyes" />
-              <span className="dog-nose" />
-            </span>
-            <span className="nurse-cap">
-              <span className="nurse-cross" />
-            </span>
-            {isAuthenticated && <span className="nurse-status-dot" />}
-          </button>
+            <div className="topbar-utility-right">
+              <button
+                className={isAuthenticated ? 'nurse-dog-trigger signed-in' : 'nurse-dog-trigger'}
+                onClick={() => (isAuthenticated ? setLegalModal('account') : setShowAuthModal(true))}
+                aria-label={isAuthenticated ? 'Open account' : 'Open sign in'}
+                title={isAuthenticated ? String(currentUser?.user?.firstName ?? currentUser?.user?.email ?? 'Account') : 'Sign in'}
+              >
+                <span className="dog-ears" />
+                <span className="dog-face">
+                  <span className="dog-eyes" />
+                  <span className="dog-nose" />
+                </span>
+                <span className="nurse-cap">
+                  <span className="nurse-cross" />
+                </span>
+                {isAuthenticated && <span className="nurse-status-dot" />}
+              </button>
 
-          {isAuthenticated && (
-            <button className="ghost-btn compact-logout" onClick={handleLogout}>
-              Sign Out
-            </button>
-          )}
+              <div className="clock-box">
+                <span>{clock}</span>
+                <small>{date}</small>
+              </div>
 
-          <div className="clock-box">
-            <span>{clock}</span>
-            <small>{date}</small>
+              {isAuthenticated && (
+                <button className="ghost-btn compact-logout" onClick={handleLogout}>
+                  Sign Out
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>

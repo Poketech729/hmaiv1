@@ -183,7 +183,6 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
     resetMessages()
     setLoading(true)
     try {
-      const { supabase } = await import('./lib/supabaseClient')
       const { error: googleError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: window.location.origin },

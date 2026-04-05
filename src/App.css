@@ -38,6 +38,9 @@
 
 .brand,
 .topbar-actions,
+.topbar-utility-row,
+.topbar-utility-left,
+.topbar-utility-right,
 .mode-switch,
 .lang-switch,
 .brand-mark,
@@ -447,6 +450,21 @@
   gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.topbar-utility-row {
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.topbar-utility-left,
+.topbar-utility-right {
+  gap: 10px;
+}
+
+.topbar-utility-right {
+  margin-left: auto;
 }
 
 .mode-switch,
@@ -2200,5 +2218,437 @@
   .chat-fab-wrap {
     right: 16px;
     bottom: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px 12px;
+    border-bottom-left-radius: 22px;
+    border-bottom-right-radius: 22px;
+  }
+
+  .brand {
+    gap: 10px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    font-size: 18px;
+    flex: 0 0 36px;
+  }
+
+  .brand-title {
+    font-size: 0.98rem;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mode-switch,
+  .lang-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 4px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .lang-switch {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mode-btn,
+  .lang-btn {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 6px;
+    font-size: 0.72rem;
+    line-height: 1.1;
+  }
+
+  .theme-switch,
+  .sound-switch {
+    justify-self: start;
+  }
+
+  .theme-switch-track,
+  .sound-switch-track {
+    width: 50px;
+  }
+
+  .theme-switch-thumb,
+  .sound-switch-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  .theme-switch.dark .theme-switch-thumb,
+  .sound-switch-thumb {
+    transform: translateX(22px);
+  }
+
+  .sound-switch.muted .sound-switch-thumb {
+    transform: translateX(0);
+  }
+
+  .topbar-utility-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .topbar-utility-left,
+  .topbar-utility-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .topbar-utility-right {
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  .nurse-dog-trigger,
+  .nurse-dog-badge {
+    width: 42px;
+    height: 42px;
+  }
+
+  .compact-logout {
+    display: none;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+  }
+
+  .clock-box {
+    display: flex;
+    align-items: center;
+    width: auto;
+    min-width: 0;
+    font-size: 0.76rem;
+    text-align: left;
+    line-height: 1;
+  }
+
+  .clock-box small {
+    display: none;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px 12px 8px;
+  }
+
+  .launch-scene {
+    display: none;
+  }
+
+  .hero-copy {
+    display: grid;
+    gap: 10px;
+  }
+
+  .eyebrow {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 10px 12px;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    border-radius: 18px;
+  }
+
+  .hero-copy h1 {
+    margin: 0;
+    font-size: 1.38rem;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-copy p {
+    font-size: 0.92rem;
+    line-height: 1.7;
+    max-width: none;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .spotlight-card {
+    padding: 14px 14px 12px;
+    border-radius: 18px;
+    animation: none;
+    transform: none !important;
+    min-height: 0;
+  }
+
+  .spotlight-card h3 {
+    margin: 8px 0 6px;
+    font-size: 0.96rem;
+  }
+
+  .spotlight-card p {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .spotlight-orb {
+    width: 120px;
+    height: 120px;
+    inset: auto -18% -38% auto;
+  }
+
+  .stats-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 12px 16px;
+  }
+
+  .stat-box {
+    padding: 12px 10px;
+    border-radius: 16px;
+  }
+
+  .stat-box strong {
+    font-size: 1.05rem;
+  }
+
+  .stat-box span {
+    font-size: 0.76rem;
+  }
+
+  .tabbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .tab-btn {
+    width: 100%;
+    white-space: normal;
+    padding: 10px 8px;
+    font-size: 0.78rem;
+    border-radius: 14px;
+  }
+
+  .voice-profiles,
+  .quick-actions,
+  .dose-list {
+    gap: 8px;
+  }
+
+  .chip,
+  .dose-chip {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    text-align: left;
+    font-size: 0.78rem;
+  }
+
+  .main-content {
+    padding: 0 12px 88px;
+  }
+
+  .panel {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .card {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .section-head {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .section-head h2 {
+    font-size: 1rem;
+  }
+
+  .section-head p {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .mic-wrap,
+  .conversation,
+  .chat-window,
+  .inline-chat {
+    width: 100%;
+  }
+
+  .mic-btn {
+    width: 58px;
+    height: 58px;
+    font-size: 1rem;
+  }
+
+  .chat-window {
+    min-height: 0;
+  }
+
+  .chat-body {
+    max-height: 260px;
+  }
+
+  .chat-input-row textarea {
+    min-height: 72px;
+    font-size: 0.9rem;
+  }
+
+  .med-card,
+  .patient-mini-card,
+  .speech-card,
+  .list-row,
+  .alert-row {
+    padding: 14px;
+  }
+
+  .med-main {
+    min-width: 0;
+  }
+
+  .med-main h3,
+  .section-head h2 {
+    font-size: 1rem;
+  }
+
+  .footer {
+    padding-top: 16px;
+    padding-bottom: 20px;
+  }
+
+  .footer-bottom {
+    gap: 10px;
+    text-align: left;
+  }
+
+  .traditional-auth,
+  .auth-card {
+    width: min(100%, 100vw - 24px);
+    padding: 18px 16px;
+    border-radius: 18px;
+  }
+
+  .traditional-auth-head h2 {
+    font-size: 1.5rem;
+  }
+
+  .social-auth-btn,
+  .traditional-submit-btn,
+  .otp-choice,
+  .traditional-auth-form input,
+  .traditional-auth-form select {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .brand-title {
+    font-size: 0.92rem;
+  }
+
+  .brand-sub {
+    display: none;
+  }
+
+  .hero-copy h1 {
+    font-size: 1.22rem;
+  }
+
+  .spotlight-card,
+  .card,
+  .panel,
+  .stat-box,
+  .med-card,
+  .speech-card,
+  .list-row,
+  .alert-row {
+    padding: 12px;
+  }
+
+  .mode-btn,
+  .lang-btn,
+  .tab-btn,
+  .chip,
+  .dose-chip {
+    font-size: 0.7rem;
+  }
+
+  .clock-box {
+    font-size: 0.72rem;
+  }
+
+  .chat-body {
+    max-height: 220px;
+  }
+
+  .chat-input-row textarea {
+    min-height: 64px;
+  }
+
+  .mic-btn {
+    width: 52px;
+    height: 52px;
+  }
+
+  .nurse-dog-trigger,
+  .nurse-dog-badge {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stats-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .tabbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .topbar-utility-row {
+    gap: 8px;
+  }
+
+  .topbar-utility-right {
+    gap: 8px;
+  }
+
+  .clock-box {
+    font-size: 0.68rem;
   }
 }
