@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FiMail, FiSmartphone } from 'react-icons/fi'
 import { FcGoogle } from 'react-icons/fc'
-import { supabase } from './lib/supabaseClient'
+import { hasSupabaseConfig, supabase, supabaseConfigError } from './lib/supabaseClient'
 
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || '').trim()
 
@@ -76,6 +76,7 @@ async function ensureBackendProfile(payload: {
   phone?: string
   role: 'patient' | 'doctor'
 }) {
+  if (!supabase) return
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
   if (!token) return
@@ -140,6 +141,12 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
   }, [])
 
   useEffect(() => {
+    if (!hasSupabaseConfig) {
+      setError(supabaseConfigError)
+    }
+  }, [])
+
+  useEffect(() => {
     if (resendIn <= 0) return
     const timer = window.setTimeout(() => setResendIn((current) => current - 1), 1000)
     return () => window.clearTimeout(timer)
@@ -181,6 +188,10 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
 
   const handleGoogleSignIn = async () => {
     resetMessages()
+    if (!supabase) {
+      setError(supabaseConfigError)
+      return
+    }
     setLoading(true)
     try {
       const { supabase } = await import('./lib/supabaseClient')
@@ -205,6 +216,10 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
 
   const handleSendOtp = async () => {
     resetMessages()
+    if (!supabase && contactMode === 'email') {
+      setError(supabaseConfigError)
+      return
+    }
     if (authMode === 'signup') {
       if (!firstName.trim() || !lastName.trim()) {
         setError('Please enter your first and last name to create an account.')
@@ -272,6 +287,10 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
 
   const handleVerifyOtp = async () => {
     resetMessages()
+    if (!supabase && contactMode === 'email') {
+      setError(supabaseConfigError)
+      return
+    }
     if (!otpCode.trim()) {
       setError('Please enter the OTP code.')
       return

@@ -1,7 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode, useEffect, useRef, useState } from 'react'
 import './App.css'
 import AuthGate from './AuthGate'
-import { supabase } from './lib/supabaseClient'
+import { hasSupabaseConfig, supabase, supabaseConfigError } from './lib/supabaseClient'
 
 // SpeechRecognition global type - browser API
 interface SpeechRecognitionConstructor {
@@ -1674,9 +1674,14 @@ function AppContent() {
   const [bloodValues, setBloodValues] = useState<BloodValues>(EMPTY_BLOOD_VALUES)
   const [analyzingReport, setAnalyzingReport] = useState(false)
   const [draggingReport, setDraggingReport] = useState(false)
+  const [configWarning, setConfigWarning] = useState('')
 
   // Check Supabase session and backend profile
   useEffect(() => {
+    if (!supabase) {
+      setConfigWarning(supabaseConfigError)
+      return
+    }
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession()
       if (data.session) {
@@ -1722,6 +1727,12 @@ function AppContent() {
   }, [])
 
   const handleLogout = async () => {
+    if (!supabase) {
+      setIsAuthenticated(false)
+      setCurrentUser(null)
+      setShowAuthModal(false)
+      return
+    }
     await supabase.auth.signOut()
     setIsAuthenticated(false)
     setCurrentUser(null)
@@ -2350,7 +2361,7 @@ Keep to 2-4 short sentences.
           </div>
         </div>
 
-        <div className="topbar-actions">
+      <div className="topbar-actions">
           <div className="mode-switch">
             <button className={mode === 'patient' ? 'mode-btn active' : 'mode-btn'} onClick={() => setMode('patient')}>{ui.patient}</button>
             <button className={mode === 'caretaker' ? 'mode-btn active' : 'mode-btn'} onClick={() => setMode('caretaker')}>{ui.caretaker}</button>
@@ -2416,8 +2427,15 @@ Keep to 2-4 short sentences.
             <span>{clock}</span>
             <small>{date}</small>
           </div>
-        </div>
-      </header>
+      </div>
+    </header>
+
+    {configWarning && (
+      <div className="config-warning">
+        <FiAlertCircle />
+        <span>{configWarning}</span>
+      </div>
+    )}
       <section className="hero">
         <div className="launch-scene" aria-hidden="true">
           <div className="launch-cube">
@@ -3031,7 +3049,8 @@ Keep to 2-4 short sentences.
                 <div className="action-row">
                   <button className="primary-btn" onClick={async () => {
   try {
-    const { data, error } = await supabase.auth.signUp({
+                    if (!supabase) throw new Error('Supabase is not configured')
+                    const { data, error } = await supabase.auth.signUp({
       email: account.email,
       password: 'HmaiDefault2025!',
     })

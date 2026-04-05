@@ -3,13 +3,15 @@ import { supabase } from './supabaseClient'
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || '').trim()
 
 export async function apiCall(path: string, options: RequestInit = {}) {
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = supabase
+    ? (await supabase.auth.getSession()).data.session
+    : null
 
   const response = await fetch(`${BACKEND_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': session ? `Bearer ${session.access_token}` : '',
+      'Authorization': session?.access_token ? `Bearer ${session.access_token}` : '',
       ...options.headers,
     },
   })

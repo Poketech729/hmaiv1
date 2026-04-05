@@ -449,6 +449,19 @@
   justify-content: flex-end;
 }
 
+.config-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 24px 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  color: #92400e;
+  font-size: 0.95rem;
+}
+
 .mode-switch,
 .lang-switch {
   gap: 6px;
