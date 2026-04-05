@@ -1,5 +1,55 @@
 import { Component, type ErrorInfo, type ReactNode, useEffect, useRef, useState } from 'react'
 import './App.css'
+import AuthGate from './AuthGate'
+import { supabase } from './lib/supabaseClient'
+
+// SpeechRecognition global type - browser API
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognition
+}
+
+interface SpeechRecognition {
+  start(): void
+  stop(): void
+  abort(): void
+  onstart?: () => void
+  onend?: () => void
+  onresult?: (event: SpeechRecognitionEvent) => void
+  onerror?: (event: SpeechRecognitionErrorEvent) => void
+}
+
+interface SpeechRecognitionEvent {
+  resultIndex: number
+  results: SpeechRecognitionResultList
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string
+}
+
+interface SpeechRecognitionResultList {
+  [index: number]: SpeechRecognitionResult
+  length: number
+}
+
+interface SpeechRecognitionResult {
+  [index: number]: SpeechRecognitionAlternative
+  isFinal: boolean
+  length: number
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string
+  confidence: number
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: SpeechRecognitionConstructor | undefined
+    webkitSpeechRecognition: SpeechRecognitionConstructor | undefined
+  }
+}
+import { apiCall } from './lib/api'
 import {
   FiActivity,
   FiAlertCircle,
@@ -17,11 +67,13 @@ import {
   FiSend,
   FiSettings,
   FiShield,
+  FiSun,
   FiTrash2,
   FiUpload,
   FiUser,
   FiVolume2,
   FiVolumeX,
+  FiMoon,
   FiX,
 } from 'react-icons/fi'
 
@@ -32,8 +84,8 @@ type LangKey = 'en' | 'hi' | 'es' | 'it'
 
 type DoseTime = { time: string; taken: boolean; takenAt?: string }
 type Med = { id: string; name: string; dosage: string; notes: string; alert: boolean; times: DoseTime[] }
-type MedLog = { id: string; med: string; time: string; status: 'taken' | 'missed' }
-type AlertItem = { id: string; msg: string; time: string; type: 'warning' | 'info' | 'success' }
+type MedLog = { id: string; med: string; time: string; status: 'taken' | 'missed' | 'recorded' }
+type AlertItem = { id: string; msg: string; time: string; type: 'warning' | 'info' | 'success' | 'error' }
 type Patient = { name: string; age: string; condition: string; phone: string }
 type PatientProfile = Patient & { id: string; savedAt: string }
 type ChatMessage = { id: string; role: 'user' | 'ai'; text: string; time: string }
@@ -575,6 +627,14 @@ function phoneUriValue(raw: string) {
   return cleaned
 }
 
+function extractRecordedNote(text: string) {
+  const match = text.match(/^(?:please\s+)?(?:record|log|note|remember)\s+(.+)$/i)
+  if (!match?.[1]) return null
+  const cleaned = match[1].trim().replace(/\s+/g, ' ')
+  if (!cleaned) return null
+  return cleaned.length > 110 ? `${cleaned.slice(0, 107)}...` : cleaned
+}
+
 function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
@@ -584,13 +644,7 @@ function fileToDataUrl(file: File) {
   })
 }
 
-function compactReportsForStorage(reports: Report[]) {
-  return reports.map((report) => ({
-    ...report,
-    raw: report.raw.length > 4000 ? `${report.raw.slice(0, 4000)}...` : report.raw,
-    dataUrl: '',
-  }))
-}
+
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -683,7 +737,7 @@ const LEGAL_CONTENT: Record<Exclude<LegalKey, 'account' | null>, { title: string
 }
 
 function getApiKey() {
-  return (import.meta.env.VITE_ANTHROPIC_API_KEY as string) || ''
+  return ''
 }
 
 function normalize(text: string) {
@@ -741,6 +795,7 @@ async function fetchDrugKnowledge(query: string): Promise<RemoteDrugInfo | null>
     const rxResponse = await fetch(`https://rxnav.nlm.nih.gov/REST/approximateTerm.json?term=${encodeURIComponent(resolved)}&maxEntries=1`)
     const rxData = rxResponse.ok ? await rxResponse.json() : null
     const rxName = rxData?.approximateGroup?.candidate?.[0]?.name || resolved
+    // eslint-disable-next-line no-useless-escape
     const labelUrl = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:\"${encodeURIComponent(rxName)}\"+openfda.generic_name:\"${encodeURIComponent(rxName)}\")&limit=1`
     const response = await fetch(labelUrl)
     if (!response.ok) return null
@@ -776,7 +831,7 @@ async function fetchDrugKnowledge(query: string): Promise<RemoteDrugInfo | null>
 
 async function fetchBackendMedicineAnswer(question: string, medicine: string, lang: LangKey) {
   try {
-    const response = await fetch('/api/medicine', {
+    const response = await fetch(`${BACKEND_URL}/api/medicine`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question, medicine, lang: LANG_META[lang].label }),
@@ -791,7 +846,7 @@ async function fetchBackendMedicineAnswer(question: string, medicine: string, la
 
 async function analyzeReportImageWithBackend(imageBase64: string, mime: string, age: string, manualValues: BloodValues) {
   try {
-    const response = await fetch('/api/report-image', {
+    const response = await fetch(`${BACKEND_URL}/api/report-image`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageBase64, mime, age, manualValues }),
@@ -825,7 +880,9 @@ async function resolveDrugQuery(text: string, meds: Med[]) {
       const rxData = await rxResponse.json()
       const suggestion = rxData?.suggestionGroup?.suggestionList?.suggestion?.[0]
       if (suggestion) return suggestion
-    } catch {}
+    } catch {
+      // Continue to next candidate on error
+    }
   }
 
   return candidates[0] || ''
@@ -951,7 +1008,7 @@ async function callClaude(system: string, content: unknown, maxTokens = 500) {
 
 async function callBackendChat(question: string, lang: LangKey, meds: Med[], patient: Patient) {
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetch(`${BACKEND_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1564,7 +1621,13 @@ function buildMedicationContext(meds: Med[]) {
     .join(' ')
 }
 
+const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || '').trim()
+
 function AppContent() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{ user?: Record<string, unknown>; profile?: unknown } | null>(null)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+
   const [mode, setMode] = useState<Mode>('patient')
   const [patientTab, setPatientTab] = useState<PatientTab>('voice')
   const [careTab, setCareTab] = useState<CareTab>('medicines')
@@ -1581,6 +1644,8 @@ function AppContent() {
   const [clock, setClock] = useState(nowTime())
   const [date, setDate] = useState(fullDate())
   const [muted, setMuted] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [showThemeControl, setShowThemeControl] = useState(true)
   const [chatOpen, setChatOpen] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
@@ -1610,7 +1675,60 @@ function AppContent() {
   const [analyzingReport, setAnalyzingReport] = useState(false)
   const [draggingReport, setDraggingReport] = useState(false)
 
-  const recognitionRef = useRef<any>(null)
+  // Check Supabase session and backend profile
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        setIsAuthenticated(true)
+        try {
+          const r = await fetch(`${BACKEND_URL}/api/users/me`, {
+            headers: { Authorization: `Bearer ${data.session.access_token}` },
+          })
+          if (r.ok) {
+            const payload = await r.json()
+            setCurrentUser(payload)
+          }
+        } catch (err) {
+          console.warn('Unable to fetch backend user profile', err)
+        }
+      }
+    }
+
+    checkAuth()
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.access_token) {
+        setIsAuthenticated(true)
+        try {
+          const r = await fetch(`${BACKEND_URL}/api/users/me`, {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          })
+          if (r.ok) {
+            setCurrentUser(await r.json())
+          }
+        } catch (err) {
+          console.warn(err)
+        }
+      } else {
+        setIsAuthenticated(false)
+        setCurrentUser(null)
+      }
+    })
+
+    return () => {
+      listener?.subscription?.unsubscribe?.()
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setIsAuthenticated(false)
+    setCurrentUser(null)
+    setShowAuthModal(false)
+  }
+
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
   const debounceRef = useRef<number | null>(null)
   const inlineChatBodyRef = useRef<HTMLDivElement>(null)
   const floatingChatBodyRef = useRef<HTMLDivElement>(null)
@@ -1636,13 +1754,17 @@ function AppContent() {
       if (parsed.meds?.length) setMeds(parsed.meds)
       if (parsed.logs) setLogs(parsed.logs)
       if (parsed.alerts) setAlerts(parsed.alerts)
-    } catch {}
+    } catch {
+      // Ignore parsing errors
+    }
   }, [])
 
   useEffect(() => {
     try {
       window.localStorage.setItem(CARETAKER_KEY, JSON.stringify({ patient, patientProfiles, account, meds, logs, alerts }))
-    } catch {}
+    } catch {
+      // Ignore storage errors
+    }
   }, [patient, patientProfiles, account, meds, logs, alerts])
 
   useEffect(() => {
@@ -1656,6 +1778,32 @@ function AppContent() {
       return current
     })
   }, [lang])
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem('hmai-theme')
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      setTheme(savedTheme)
+    }
+  }, [])
+
+  useEffect(() => {
+    document.body.dataset.theme = theme
+    try {
+      window.localStorage.setItem('hmai-theme', theme)
+    } catch {
+      // Ignore storage errors
+    }
+  }, [theme])
+
+  useEffect(() => {
+    const updateHeaderControl = () => {
+      setShowThemeControl(window.scrollY < 220)
+    }
+
+    updateHeaderControl()
+    window.addEventListener('scroll', updateHeaderControl, { passive: true })
+    return () => window.removeEventListener('scroll', updateHeaderControl)
+  }, [])
 
   useEffect(() => {
     const loadVoices = () => {
@@ -1685,6 +1833,11 @@ function AppContent() {
 
   function addLog(med: string, status: MedLog['status']) {
     setLogs((current) => [{ id: uid(), med, status, time: nowTime() }, ...current].slice(0, 40))
+  }
+
+  function addRecordedEntry(note: string) {
+    addLog(note, 'recorded')
+    addAlert(`Recorded for caretaker: ${note}`, 'info')
   }
 
   function markMedicineTaken(name: string) {
@@ -1761,6 +1914,20 @@ function AppContent() {
       }
     }
 
+    const recordedNote = extractRecordedNote(text)
+    if (recordedNote) {
+      addRecordedEntry(recordedNote)
+      return translateReply(
+        lang,
+        `I recorded this for the caretaker log: ${recordedNote}.`,
+        lang === 'hi'
+          ? `Maine caretaker log ke liye yeh note record kar diya: ${recordedNote}.`
+          : lang === 'es'
+            ? `Lo registre para el cuidador: ${recordedNote}.`
+            : `L'ho registrato per il caregiver: ${recordedNote}.`
+      )
+    }
+
     const local = buildLocalReply(text, lang, meds, patient, currentVoiceLabel)
     if (local.markedMedicine) markMedicineTaken(local.markedMedicine)
     if (local.handled) return local.text
@@ -1821,11 +1988,11 @@ Keep to 2-4 short sentences.
     const answer = await generateAssistantReply(text)
     setChatMessages((current) => [...current, { id: uid(), role: 'ai', text: answer, time: nowTime() }])
     setChatLoading(false)
-    speak(answer)
   }
 
   async function startListening() {
     if (processingVoice || listening) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Recognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!Recognition) {
       setMicError('Speech recognition is only supported in Chrome or Edge right now.')
@@ -1852,6 +2019,7 @@ Keep to 2-4 short sentences.
       setListening(true)
       setTranscript('')
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = async (event: any) => {
       let finalText = ''
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
@@ -1865,6 +2033,7 @@ Keep to 2-4 short sentences.
         await handleVoiceQuestion(heard)
       }
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (event: any) => {
       setListening(false)
       if (event?.error === 'not-allowed' || event?.error === 'permission-denied') {
@@ -2169,7 +2338,7 @@ Keep to 2-4 short sentences.
   const emergencySmsHref = emergencyPhone ? `sms:${emergencyPhone}?body=${encodeURIComponent(emergencySmsMessage)}` : ''
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell theme-${theme}`}>
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">
@@ -2195,23 +2364,53 @@ Keep to 2-4 short sentences.
             ))}
           </div>
 
+          {showThemeControl ? (
+            <button
+              className={theme === 'dark' ? 'theme-switch dark' : 'theme-switch'}
+              onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              <span className="theme-switch-track">
+                <span className="theme-switch-thumb">{theme === 'dark' ? <FiMoon /> : <FiSun />}</span>
+              </span>
+            </button>
+          ) : (
+            <button
+              className={muted ? 'sound-switch muted' : 'sound-switch'}
+              onClick={() => {
+                if (!muted) window.speechSynthesis.cancel()
+                setMuted((current) => !current)
+              }}
+              aria-label={muted ? 'Unmute voice' : 'Mute voice'}
+            >
+              <span className="sound-switch-track">
+                <span className="sound-switch-thumb">{muted ? <FiVolumeX /> : <FiVolume2 />}</span>
+              </span>
+            </button>
+          )}
+
           <button
-            className={muted ? 'sound-switch muted' : 'sound-switch'}
-            onClick={() => {
-              if (!muted) window.speechSynthesis.cancel()
-              setMuted((current) => !current)
-            }}
-            aria-label={muted ? 'Unmute voice' : 'Mute voice'}
+            className={isAuthenticated ? 'nurse-dog-trigger signed-in' : 'nurse-dog-trigger'}
+            onClick={() => (isAuthenticated ? setLegalModal('account') : setShowAuthModal(true))}
+            aria-label={isAuthenticated ? 'Open account' : 'Open sign in'}
+            title={isAuthenticated ? String(currentUser?.user?.firstName ?? currentUser?.user?.email ?? 'Account') : 'Sign in'}
           >
-            <span className="sound-switch-track">
-              <span className="sound-switch-thumb">{muted ? <FiVolumeX /> : <FiVolume2 />}</span>
+            <span className="dog-ears" />
+            <span className="dog-face">
+              <span className="dog-eyes" />
+              <span className="dog-nose" />
             </span>
+            <span className="nurse-cap">
+              <span className="nurse-cross" />
+            </span>
+            {isAuthenticated && <span className="nurse-status-dot" />}
           </button>
 
-          <button className="account-chip" onClick={() => setLegalModal('account')}>
-            <FiUser />
-            <span>{account.name.trim() || 'Account'}</span>
-          </button>
+          {isAuthenticated && (
+            <button className="ghost-btn compact-logout" onClick={handleLogout}>
+              Sign Out
+            </button>
+          )}
 
           <div className="clock-box">
             <span>{clock}</span>
@@ -2830,7 +3029,30 @@ Keep to 2-4 short sentences.
                   <label className="span-2">Role<input value={account.role} onChange={(event) => setAccount((current) => ({ ...current, role: event.target.value }))} placeholder="Patient or caretaker" /></label>
                 </div>
                 <div className="action-row">
-                  <button className="primary-btn" onClick={() => { addAlert('Account details saved locally.', 'success'); setLegalModal(null) }}>Save account</button>
+                  <button className="primary-btn" onClick={async () => {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: account.email,
+      password: 'HmaiDefault2025!',
+    })
+    if (error) throw error
+    if (data.session) {
+      await apiCall('/api/auth/complete-profile', {
+        method: 'POST',
+        body: JSON.stringify({
+          role: account.role === 'Doctor' ? 'doctor' : 'patient',
+          firstName: account.name.split(' ')[0] || account.name,
+          lastName: account.name.split(' ')[1] || '',
+          email: account.email,
+        })
+      })
+    }
+    addAlert('Account saved!', 'success')
+    setLegalModal(null)
+  } catch {
+    addAlert('Could not save account. Try again.', 'error')
+  }
+}}>Save account</button>
                 </div>
               </div>
             ) : (
@@ -2839,6 +3061,12 @@ Keep to 2-4 short sentences.
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {showAuthModal && (
+        <div className="modal-backdrop" onClick={(event) => event.target === event.currentTarget && setShowAuthModal(false)}>
+          <AuthGate onAuthenticated={() => { setIsAuthenticated(true); setShowAuthModal(false) }} />
         </div>
       )}
     </div>

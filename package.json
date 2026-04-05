@@ -5,31 +5,48 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "api": "node server/server.mjs",
+    "backend:dev": "tsx watch backend/src/index.ts",
+    "backend:build": "tsc -p backend/tsconfig.json",
+    "db:push": "drizzle-kit push --config backend/drizzle.config.ts",
+    "db:generate": "drizzle-kit generate --config backend/drizzle.config.ts",
+    "db:studio": "drizzle-kit studio --config backend/drizzle.config.ts",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@hono/node-server": "^1.13.7",
+    "@hono/zod-validator": "^0.4.3",
+    "@supabase/supabase-js": "^2.100.1",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.3",
+    "hono": "^4.7.0",
     "i18next": "^25.10.9",
     "lucide-react": "^1.7.0",
+    "nodemailer": "^8.0.4",
+    "postgres": "^3.4.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-i18next": "^16.6.6",
     "react-icons": "^5.6.0",
-    "react-speech-recognition": "^4.0.1"
+    "react-speech-recognition": "^4.0.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@types/node": "^22.10.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "drizzle-kit": "^0.30.1",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.21"
   }
 }
