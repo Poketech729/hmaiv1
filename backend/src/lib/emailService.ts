@@ -15,8 +15,11 @@ async function sendWithSendgrid(
   htmlContent: string
 ): Promise<void> {
   try {
-    const sgMail = await import("@sendgrid/mail");
-    const mail = sgMail.default;
+    const dynamicImport = new Function("specifier", "return import(specifier)") as (
+      specifier: string
+    ) => Promise<any>;
+    const sgMail = await dynamicImport("@sendgrid/mail");
+    const mail = sgMail.default ?? sgMail;
 
     mail.setApiKey(process.env.SENDGRID_API_KEY!);
 

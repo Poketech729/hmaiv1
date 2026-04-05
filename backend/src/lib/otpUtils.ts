@@ -39,7 +39,7 @@ export async function storeOTP(phone: string, otp: string): Promise<void> {
   // Invalidate previous OTPs for this phone
   await db
     .update(otpVerification)
-    .set({ status: "expired" })
+    .set({ status: "expired" } as any)
     .where(
       and(
         eq(otpVerification.phone, phone),
@@ -48,13 +48,15 @@ export async function storeOTP(phone: string, otp: string): Promise<void> {
     );
 
   // Store new OTP
-  await db.insert(otpVerification).values({
-    phone,
-    otp,
-    status: "pending",
-    attempts: 0,
-    expiresAt: getOTPExpirationTime(10),
-  });
+  await db.insert(otpVerification).values(
+    {
+      phone,
+      otp,
+      status: "pending",
+      attempts: 0,
+      expiresAt: getOTPExpirationTime(10),
+    } as any,
+  );
 }
 
 /**
@@ -69,7 +71,7 @@ export async function storeEmailOTP(email: string, otp: string): Promise<void> {
 
   await db
     .update(otpVerification)
-    .set({ status: "expired" })
+    .set({ status: "expired" } as any)
     .where(
       and(
         eq(otpVerification.phone, emailKey),
@@ -77,13 +79,15 @@ export async function storeEmailOTP(email: string, otp: string): Promise<void> {
       )
     );
 
-  await db.insert(otpVerification).values({
-    phone: emailKey,
-    otp,
-    status: "pending",
-    attempts: 0,
-    expiresAt: getOTPExpirationTime(10),
-  });
+  await db.insert(otpVerification).values(
+    {
+      phone: emailKey,
+      otp,
+      status: "pending",
+      attempts: 0,
+      expiresAt: getOTPExpirationTime(10),
+    } as any,
+  );
 }
 
 // ─── OTP Verification ─────────────────────────────────────────────────────────
@@ -112,13 +116,19 @@ export async function verifyOTP(phone: string, otp: string): Promise<boolean> {
 
   // Check expiration
   if (new Date() > record.expiresAt) {
-    await db.update(otpVerification).set({ status: "expired" }).where(eq(otpVerification.id, record.id));
+    await db
+      .update(otpVerification)
+      .set({ status: "expired" } as any)
+      .where(eq(otpVerification.id, record.id));
     throw new Error("OTP has expired");
   }
 
   // Check attempts
   if (record.attempts >= 3) {
-    await db.update(otpVerification).set({ status: "expired" }).where(eq(otpVerification.id, record.id));
+    await db
+      .update(otpVerification)
+      .set({ status: "expired" } as any)
+      .where(eq(otpVerification.id, record.id));
     throw new Error("Too many attempts. OTP expired");
   }
 
@@ -127,7 +137,7 @@ export async function verifyOTP(phone: string, otp: string): Promise<boolean> {
     // Increment attempts
     await db
       .update(otpVerification)
-      .set({ attempts: record.attempts + 1 })
+      .set({ attempts: record.attempts + 1 } as any)
       .where(eq(otpVerification.id, record.id));
     throw new Error("Invalid OTP");
   }
@@ -135,10 +145,12 @@ export async function verifyOTP(phone: string, otp: string): Promise<boolean> {
   // Mark as verified
   await db
     .update(otpVerification)
-    .set({
-      status: "verified",
-      verifiedAt: new Date(),
-    })
+    .set(
+      {
+        status: "verified",
+        verifiedAt: new Date(),
+      } as any,
+    )
     .where(eq(otpVerification.id, record.id));
 
   return true;
